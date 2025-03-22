@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catch the Critter!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            font-family: 'Press Start 2P', cursive;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+            padding: 1em;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(4px);
+            border: 2px solid #ddd;
+        }
+
+        h1 {
+            font-size: 1.5em;
+            margin-bottom: 0.5em;
+            color: #333;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (min-width: 640px) {
+            h1 {
+                font-size: 2.5em;
+            }
+        }
+
+        #gameArea {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            border: 4px dashed #aaa;
+            margin-bottom: 1em;
+            background-color: #e8f0fa;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+
+        #gameArea:hover {
+            border-color: #3b82f6;
+        }
+
+        #critter {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: #facc15;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.1s ease;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #critter:hover {
+            transform: scale(1.2);
+            background-color: #fde047;
+        }
+
+        #critter:active {
+            transform: scale(0.9);
+            box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .critter-shape {
+            width: 60%;
+            height: 60%;
+            border-radius: 50%;
+            background-color: #f472b6;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: explode 0.5s ease-out, fadeOut 0.5s ease-out;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: translate(0, 0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(20px, -20px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        .powerup {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        .powerup-slow {
+            background-color: #8b5cf6;
+        }
+
+        .powerup-multiplier {
+            background-color: #10b981;
+        }
+
+        .powerup-freeze {
+            background-color: #3b82f6;
+        }
+
+        .powerup:hover {
+            transform: scale(1.2);
+        }
+
+        #score {
+            font-size: 1.2em;
+            margin-bottom: 0.5em;
+            color: #555;
+        }
+
+        @media (min-width: 640px) {
+            #score {
+                font-size: 1.5em;
+            }
+        }
+
+        #message {
+            font-size: 1em;
+            color: #3b82f6;
+            margin-bottom: 1em;
+            min-height: 1.5em;
+            transition: color 0.3s ease;
+        }
+
+        @media (min-width: 640px) {
+            #message {
+                font-size: 1.2em;
+            }
+        }
+
+        #startButton, #muteButton {
+            padding: 0.5em 1em;
+            font-size: 0.8em;
+            color: white;
+            background-color: #3b82f6;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            margin: 0.5em;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        #startButton:hover, #muteButton:hover {
+            background-color: #2563eb;
+        }
+
+        #startButton:active, #muteButton:active {
+            transform: scale(0.9);
+            box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (min-width: 640px) {
+            #startButton, #muteButton {
+                padding: 0.75em 1.5em;
+                font-size: 1em;
+            }
+        }
+
+        #startButton.hidden {
+            display: none;
+        }
+
+        #muteButton.muted {
+            background-color: #ef4444;
+        }
+
+        #muteButton.muted:hover {
+            background-color: #dc2626;
+        }
+
+        .game-over #gameArea {
+            border-color: #ef4444;
+            animation: pulse 2s infinite;
+        }
+
+        .game-over h1 {
+            color: #ef4444;
+        }
+
+        @keyframes pulse {
+            0% {
+                border-color: #3b82f6;
+            }
+
+            50% {
+                border-color: #ef4444;
+            }
+
+            100% {
+                border-color: #3b82f6;
+            }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            50% {
+                transform: translateX(5px);
+            }
+
+            75% {
+                transform: translateX(-5px);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Catch the Critter!</h1>
+        <div id="gameArea">
+            <div id="critter" class="critter-shape"></div>
+        </div>
+        <div id="score">Score: 0</div>
+        <div id="message">Get Ready!</div>
+        <button id="startButton">Start Game</button>
+        <button id="muteButton">
+            <img src="https://em-content.zobj.net/source/google/599/speaker_1f50a.png" alt="Speaker">
+        </button>
+    </div>
+    <script src="https://unpkg.com/tone"></script>
+    <script>
+        // --- Game Variables ---
+        let score = 0;
+        let gameRunning = false;
+        let critterInterval;
+        let timeLeft = 20;
+        let timerInterval;
+        let muted = false;
+        let initialCritterSpeed = 1000;
+        let critterSpeed = initialCritterSpeed;
+        let gameLevel = 1;
+        let multiplier = 1;
+        let gameOver = false;
+        let powerupInterval;
+        let activePowerup = null;
+
+
+        // --- DOM Elements ---
+        const scoreDisplay = document.getElementById('score');
+        const messageDisplay = document.getElementById('message');
+        const startButton = document.getElementById('startButton');
+        const gameArea = document.getElementById('gameArea');
+        const critter = document.getElementById('critter');
+        const muteButton = document.getElementById('muteButton');
+        const container = document.querySelector('.container');
+
+        // --- Sound Effects (Tone.js) ---
+        const synth = new Tone.Synth().toDestination();
+        const musicSynth = new Tone.MembraneSynth().toDestination();
+
+        function playSound(type) {
+            if (muted) return;
+            const now = Tone.now();
+            switch (type) {
+                case 'click':
+                    synth.triggerAttackRelease("C4", "8n", now);
+                    break;
+                case 'hit':
+                    synth.triggerAttackRelease("G4", "8n", now);
+                    break;
+                case 'gameOver':
+                    const polySynth = new Tone.PolySynth().toDestination();
+                    polySynth.triggerAttackRelease(["C2", "E2", "G2", "Bb2"], "2n", now);
+                    break;
+                case 'startGame':
+                    const startSynth = new Tone.Synth().toDestination();
+                    startSynth.triggerAttackRelease("C5", "1n", now);
+                    break;
+                case 'powerup':
+                    synth.triggerAttackRelease("C6", "16n", now);
+                    break;
+            }
+        }
+
+        // --- Functions ---
+
+        function updateScore() {
+            scoreDisplay.textContent = `Score: ${score}`;
+        }
+
+        function updateMessage(msg) {
+            messageDisplay.textContent = msg;
+        }
+
+        function moveCritter() {
+            const maxX = gameArea.clientWidth - critter.clientWidth;
+            const maxY = gameArea.clientHeight - critter.clientHeight;
+            const x = Math.random() * maxX;
+            const y = Math.random() * maxY;
+            critter.style.left = `${x}px`;
+            critter.style.top = `${y}px`;
+        }
+
+        function resetCritterSpeed() {
+            critterSpeed = initialCritterSpeed;
+            clearInterval(critterInterval);
+            critterInterval = setInterval(moveCritter, critterSpeed);
+        }
+
+        function critterClicked() {
+            if (!gameRunning) return;
+            playSound('hit');
+            score += (1 * multiplier);
+            updateScore();
+            moveCritter();
+            createParticles(critter.offsetLeft, critter.offsetTop);
+            critterSpeed *= 0.95;
+            clearInterval(critterInterval);
+            critterInterval = setInterval(moveCritter, critterSpeed);
+        }
+
+        function createParticles(x, y) {
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                gameArea.appendChild(particle);
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+
+        function startGame() {
+            if (gameRunning) return;
+            playSound('startGame');
+            gameRunning = true;
+            gameOver = false;
+            score = 0;
+            timeLeft = 20;
+            gameLevel = 1;
+            multiplier = 1;
+            updateScore();
+            updateMessage('Get Ready!');
+            startButton.classList.add('hidden');
+            container.classList.remove('game-over');
+            critterSpeed = initialCritterSpeed;
+
+            startMusic();
+            setTimeout(() => {
+                updateMessage('GO!');
+                critterInterval = setInterval(moveCritter, critterSpeed);
+                timerInterval = setInterval(updateTimer, 1000);
+                moveCritter();
+                startPowerupInterval();
+            }, 1000);
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                gameOverSequence();
+            } else {
+                updateMessage(`Time Left: ${timeLeft}`);
+            }
+        }
+
+        function gameOverSequence() {
+            gameRunning = false;
+            gameOver = true;
+            playSound('gameOver');
+            clearInterval(critterInterval);
+            clearInterval(timerInterval);
+            clearInterval(powerupInterval);
+            stopMusic();
+            updateMessage('Game Over!');
+            startButton.classList.remove('hidden');
+            container.classList.add('game-over');
+            critter.classList.add('shake');
+            setTimeout(() => {
+                critter.classList.remove('shake');
+            }, 500);
+            if (score > 0 && score < 10) {
+                messageDisplay.style.color = '#ef4444';
+                updateMessage("Oh no! You can do better than that!");
+            } else if (score >= 10 && score < 20) {
+                messageDisplay.style.color = '#f59e0b';
+                updateMessage("Not Bad!");
+            } else if (score >= 20 && score < 30) {
+                messageDisplay.style.color = '#84cc16';
+                updateMessage("Nice!");
+            } else if (score >= 30) {
+                messageDisplay.style.color = '#10b981';
+                updateMessage("Awesome!");
+            } else {
+                messageDisplay.style.color = '#ef4444';
+                updateMessage("You didn't catch any!");
+            }
+        }
+
+        function toggleMute() {
+            muted = !muted;
+            const muteButtonElement = document.getElementById('muteButton');
+            muteButtonElement.classList.toggle('muted', muted);
+            const img = muteButtonElement.querySelector('img');
+            if (muted) {
+                img.src = "https://em-content.zobj.net/source/google/599/speaker-with-cancellation-stroke_1f507.png";
+                stopMusic();
+            } else {
+                img.src = "https://em-content.zobj.net/source/google/599/speaker_1f50a.png";
+                if (gameRunning) {
+                    startMusic();
+                }
+            }
+        }
+
+        // --- Power-up Functions ---
+        function spawnPowerup() {
+            const powerupType = Math.random() < 0.5 ? 'slow' : 'multiplier';
+            const maxX = gameArea.clientWidth - 40;
+            const maxY = gameArea.clientHeight - 40;
+            const x = Math.random() * maxX;
+            const y = Math.random() * maxY;
+
+            const powerup = document.createElement('div');
+            powerup.className = `powerup powerup-${powerupType}`;
+            powerup.style.left = `${x}px`;
+            powerup.style.top = `${y}px`;
+            powerup.textContent = powerupType === 'slow' ? 'S' : '2x';
+            gameArea.appendChild(powerup);
+
+            powerup.addEventListener('click', () => {
+                handlePowerupClick(powerupType, powerup);
+            });
+
+            setTimeout(() => powerup.remove(), 5000);
+        }
+
+        function handlePowerupClick(type, powerupElement) {
+            if (!gameRunning || activePowerup) return;
+            playSound('powerup');
+            powerupElement.remove();
+            activePowerup = type;
+
+            if (type === 'slow') {
+                critterSpeed *= 1.5;
+                clearInterval(critterInterval);
+                critterInterval = setInterval(moveCritter, critterSpeed);
+                updateMessage('Critter slowed down!');
+                setTimeout(() => {
+                    resetCritterSpeed();
+                    activePowerup = null;
+                    updateMessage('');
+                }, 5000);
+            } else if (type === 'multiplier') {
+                multiplier = 2;
+                updateScore();
+                updateMessage('Score multiplier activated!');
+                setTimeout(() => {
+                    multiplier = 1;
+                    updateScore();
+                    activePowerup = null;
+                    updateMessage('');
+                }, 5000);
+            }
+        }
+
+        function startPowerupInterval() {
+            powerupInterval = setInterval(spawnPowerup, 7000);
+        }
+
+        // --- Music Setup (Tone.js) ---
+        const musicNotes = [
+            "C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"
+        ];
+        let noteIndex = 0;
+        let musicLoop;
+
+        function playMusic() {
+            if (muted) return;
+            const now = Tone.now();
+            musicSynth.triggerAttackRelease(musicNotes[noteIndex], "8n", now);
+            noteIndex = (noteIndex + 1) % musicNotes.length;
+        }
+
+        function startMusic() {
+            if (muted) return;
+            if (!musicLoop) {
+                Tone.start();
+                musicLoop = setInterval(playMusic, 200);
+            }
+        }
+
+        function stopMusic() {
+            if (musicLoop) {
+                clearInterval(musicLoop);
+                musicLoop = null;
+            }
+        }
+
+        // --- Event Listeners ---
+
+        startButton.addEventListener('click', () => {
+            playSound('click');
+            startGame();
+        });
+        critter.addEventListener('click', critterClicked);
+        muteButton.addEventListener('click', () => {
+            playSound('click');
+            toggleMute();
+        });
+
+        // --- Initial Setup ---
+        updateScore();
+        //startGame();
+
+    </script>
+</body>
+</html>
